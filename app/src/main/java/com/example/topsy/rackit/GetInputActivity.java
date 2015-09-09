@@ -21,7 +21,6 @@ public class GetInputActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        resultList = (ListView) findViewById(R.id.resultList);
         getInput();
         setContentView(R.layout.activity_get_input);
 
@@ -64,16 +63,18 @@ public class GetInputActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 1 && resultCode == RESULT_OK) {
             final ArrayList<String> thingsYouSaid = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+            resultList = (ListView) findViewById(R.id.resultList);
             resultList.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, thingsYouSaid));
             resultList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                                                   @Override
                                                   public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                                                       Toast.makeText(GetInputActivity.this.getApplicationContext(),
-                                                              "Click ListItem Number " + position + "said:\"" + thingsYouSaid.get(position) + "\"", Toast.LENGTH_LONG)
+                                                              "Click ListItem Number " + position + "\nsaid:\"" + thingsYouSaid.get(position) + "\"", Toast.LENGTH_LONG)
                                                               .show();
                                                   }
                                               }
             );
+
             Log.d("test", "onActivityResult ");
         }
     }
