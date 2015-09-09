@@ -9,25 +9,26 @@ import android.view.View;
 import android.widget.Button;
 
 public class MainActivity extends AppCompatActivity {
-    Button buttonGet, buttonPut;
+    Button buttonVoice, buttonKeyboard;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        buttonGet = (Button) findViewById(R.id.buttonGet);
-        buttonPut = (Button) findViewById(R.id.buttonPut);
-        buttonGet.setOnClickListener(new View.OnClickListener() {
+        buttonVoice = (Button) findViewById(R.id.buttonVoice);
+        buttonVoice.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent intent = new Intent(MainActivity.this, GetInputActivity.class);
                 startActivity(intent);
             }
         });
-        buttonPut.setOnClickListener(new View.OnClickListener() {
+
+        buttonKeyboard = (Button) findViewById(R.id.buttonKeyboard);
+        buttonKeyboard.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, GetInputActivity.class);
+                Intent intent = new Intent(MainActivity.this, EditQueryActivity.class);
                 startActivity(intent);
             }
         });

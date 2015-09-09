@@ -2,26 +2,27 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_weight="1"
     android:gravity="center"
     android:orientation="vertical"
-    tools:context=".MainActivity">
+    tools:context="com.example.topsy.rackit.EditQueryActivity">
 
-    <TextView
+    <EditText
+        android:id="@+id/item_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/hello_world" />
+        android:hint="@string/item_name" />
+
+    <EditText
+        android:id="@+id/item_location"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:hint="@string/item_location" />
 
     <Button
-        android:id="@+id/buttonVoice"
+        android:id="@+id/save_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/buttonVoice" />
-
-    <Button
-        android:id="@+id/buttonKeyboard"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/buttonKeyboard" />
+        android:onClick="saveItem"
+        android:text="@string/save" />
 
 </LinearLayout>

@@ -16,6 +16,7 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 public class GetInputActivity extends AppCompatActivity {
+    public static final String ITEM_NAME = "com.example.topsy.rackit.ITEM_NAME";
     ListView resultList;
 
     @Override
@@ -68,9 +69,12 @@ public class GetInputActivity extends AppCompatActivity {
             resultList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                                                   @Override
                                                   public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                                                      Intent intent = new Intent(GetInputActivity.this, EditQueryActivity.class);
+                                                      intent.putExtra(GetInputActivity.ITEM_NAME, thingsYouSaid.get(position).toLowerCase());
                                                       Toast.makeText(GetInputActivity.this.getApplicationContext(),
                                                               "Click ListItem Number " + position + "\nsaid:\"" + thingsYouSaid.get(position) + "\"", Toast.LENGTH_LONG)
                                                               .show();
+                                                      startActivity(intent);
                                                   }
                                               }
             );
