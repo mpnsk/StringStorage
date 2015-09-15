@@ -49,12 +49,12 @@ public class EditQueryActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {
                 SharedPreferences save = getPreferences(MODE_PRIVATE);
-                final String currentName = EditQueryActivity.this.itemName.getText().toString();
+                String currentName = EditQueryActivity.this.itemName.getText().toString();
                 if (save.contains(currentName)) {
                     Log.e("STRING FOUND IN MAP", "ITS" + currentName + "!!!!!");
                     Log.e("VALUE FOUND IN MAP", "ITS" + save.getString(currentName, "lol") + "!!!!!");
                     itemLocation = (EditText) findViewById(R.id.item_location);
-                    itemLocation.setText("treffer");
+                    itemLocation.setText(save.getString(currentName, "defaulValue"));
                 }
             }
         });
