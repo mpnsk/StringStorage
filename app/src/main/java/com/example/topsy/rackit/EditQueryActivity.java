@@ -1,7 +1,11 @@
 package com.example.topsy.rackit;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.speech.RecognizerIntent;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -12,10 +16,24 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
+import android.widget.Toast;
+
+import java.util.ArrayList;
 
 public class EditQueryActivity extends AppCompatActivity {
     AutoCompleteTextView itemName;
     EditText itemLocation;
+
+    public void getSpeechInput(View view) {
+        int requestCode = view.getId() % 10;
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        //i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, "en-US");
+        try {
+            startActivityForResult(i, requestCode);
+        } catch (Exception e) {
+            Toast.makeText(this, "Error initializing speech to text engine.", Toast.LENGTH_LONG).show();
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,8 +41,6 @@ public class EditQueryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_edit_query);
 
 
-        itemName = (AutoCompleteTextView) findViewById(R.id.item_name);
-        itemName.setText(getIntent().getStringExtra(GetInputActivity.ITEM_NAME));
 
         SharedPreferences save = getPreferences(MODE_PRIVATE);
         String[] allKeys = new String[save.getAll().keySet().size()];
@@ -32,7 +48,8 @@ public class EditQueryActivity extends AppCompatActivity {
         for (String key : allKeys) {
             Log.e("STRINGMAP ENTHAELT:", key + "!!!!!");
         }
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_dropdown_item_1line, allKeys);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, allKeys);
+        itemName = (AutoCompleteTextView) findViewById(R.id.item_name);
         itemName.setAdapter(adapter);
 
         itemName.addTextChangedListener(new TextWatcher() {
@@ -92,4 +109,34 @@ public class EditQueryActivity extends AppCompatActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+
+    @Override
+    protected void onActivityResult(final int requestCode, final int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            final ArrayList<String> thingsYouSaid = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Pick a color");
+            builder.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, thingsYouSaid), new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    if (requestCode == R.id.micItemName % 10) {
+                        itemName = (AutoCompleteTextView) findViewById(R.id.item_name);
+                        itemName.setText(thingsYouSaid.get(which));
+                    } else if (requestCode == R.id.micItemLocation % 10) {
+                        itemLocation = (EditText) findViewById(R.id.item_location);
+                        itemLocation.setText(thingsYouSaid.get(which));
+                    }
+
+                    Log.d("REQ+RES", requestCode + "+" + resultCode);
+                }
+            });
+            builder.show();
+
+            Log.d("test", "onActivityResult ");
+        }
+    }
+
 }
