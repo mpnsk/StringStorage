@@ -15,14 +15,15 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.EditText;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 public class EditQueryActivity extends AppCompatActivity {
     AutoCompleteTextView itemName;
-    EditText itemLocation;
+    AutoCompleteTextView itemLocation;
+    private Map<String, String> itemMap;
 
     public void getSpeechInput(View view) {
         int requestCode = view.getId() % 10;
@@ -40,17 +41,19 @@ public class EditQueryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_query);
 
-
-
         SharedPreferences save = getPreferences(MODE_PRIVATE);
-        String[] allKeys = new String[save.getAll().keySet().size()];
-        allKeys = save.getAll().keySet().toArray(allKeys);
-        for (String key : allKeys) {
-            Log.e("STRINGMAP ENTHAELT:", key + "!!!!!");
-        }
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, allKeys);
+        itemMap = (Map<String, String>) save.getAll();
+        //String[] allKeys = new String[save.getAll().keySet().size()];
+        //String[] allValues = new String[save.getAll().values().size()];
+        //allValues = save.getAll().values().toArray(allValues);
+        //allKeys = save.getAll().keySet().toArray(allKeys);
+
+        ArrayAdapter itemNameAdapter = new ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, new ArrayList<String>(itemMap.keySet()));
+        ArrayAdapter itemLocationAdapter = new ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, new ArrayList<String>(itemMap.values()));
         itemName = (AutoCompleteTextView) findViewById(R.id.item_name);
-        itemName.setAdapter(adapter);
+        itemLocation = (AutoCompleteTextView) findViewById(R.id.item_location);
+        itemName.setAdapter(itemNameAdapter);
+        itemLocation.setAdapter(itemLocationAdapter);
 
         itemName.addTextChangedListener(new TextWatcher() {
             @Override
@@ -67,11 +70,10 @@ public class EditQueryActivity extends AppCompatActivity {
             public void afterTextChanged(Editable s) {
                 SharedPreferences save = getPreferences(MODE_PRIVATE);
                 String currentName = EditQueryActivity.this.itemName.getText().toString();
-                if (save.contains(currentName)) {
-                    Log.e("STRING FOUND IN MAP", "ITS" + currentName + "!!!!!");
-                    Log.e("VALUE FOUND IN MAP", "ITS" + save.getString(currentName, "lol") + "!!!!!");
-                    itemLocation = (EditText) findViewById(R.id.item_location);
-                    itemLocation.setText(save.getString(currentName, "defaulValue"));
+                if (itemMap.containsKey(currentName)) {
+                    itemLocation.setText(itemMap.get(currentName).toString());
+                } else {
+                    itemLocation.setText("");
                 }
             }
         });
@@ -81,11 +83,9 @@ public class EditQueryActivity extends AppCompatActivity {
     public void saveItem(View view) {
         SharedPreferences save = getPreferences(MODE_PRIVATE);
         SharedPreferences.Editor editor = save.edit();
-        itemName = (AutoCompleteTextView) findViewById(R.id.item_name);
-        itemLocation = (EditText) findViewById(R.id.item_location);
         editor.putString(itemName.getText().toString(), itemLocation.getText().toString());
+        itemMap.put(itemName.getText().toString(), itemLocation.getText().toString());
         editor.commit();
-
     }
 
     @Override
@@ -123,10 +123,8 @@ public class EditQueryActivity extends AppCompatActivity {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     if (requestCode == R.id.micItemName % 10) {
-                        itemName = (AutoCompleteTextView) findViewById(R.id.item_name);
                         itemName.setText(thingsYouSaid.get(which));
                     } else if (requestCode == R.id.micItemLocation % 10) {
-                        itemLocation = (EditText) findViewById(R.id.item_location);
                         itemLocation.setText(thingsYouSaid.get(which));
                     }
 
