@@ -1,4 +1,4 @@
-package com.example.topsy.rackit;
+package com.github.mpnsk.stringstorage;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;

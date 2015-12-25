@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/rackit.iml" filepath="$PROJECT_DIR$/rackit.iml" />
+      <module fileurl="file:///sandbox/android/StringStorage/StringStorage.iml" filepath="/sandbox/android/StringStorage/StringStorage.iml" />
+      <module fileurl="file:///sandbox/android/StringStorage/app/app.iml" filepath="/sandbox/android/StringStorage/app/app.iml" />
     </modules>
   </component>
 </project>
