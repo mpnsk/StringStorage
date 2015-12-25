@@ -41,15 +41,23 @@ public class EditQueryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_query);
 
-        SharedPreferences save = getPreferences(MODE_PRIVATE);
+        TheBackupAgent theBackupAgent = new TheBackupAgent();
+        int success = theBackupAgent.requestRestore(this);
+        Log.d(Util.logKey, "requestRestore() = " + Integer.toString(success));
+
+        SharedPreferences save = getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
         itemMap = (Map<String, String>) save.getAll();
         //String[] allKeys = new String[save.getAll().keySet().size()];
         //String[] allValues = new String[save.getAll().values().size()];
         //allValues = save.getAll().values().toArray(allValues);
         //allKeys = save.getAll().keySet().toArray(allKeys);
 
-        ArrayAdapter itemNameAdapter = new ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, new ArrayList<String>(itemMap.keySet()));
-        ArrayAdapter itemLocationAdapter = new ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, new ArrayList<String>(itemMap.values()));
+        ArrayAdapter itemNameAdapter = new ArrayAdapter(this,
+                android.R.layout.simple_dropdown_item_1line,
+                new ArrayList<String>(itemMap.keySet()));
+        ArrayAdapter itemLocationAdapter = new ArrayAdapter(this,
+                android.R.layout.simple_dropdown_item_1line,
+                new ArrayList<String>(itemMap.values()));
         itemName = (AutoCompleteTextView) findViewById(R.id.item_name);
         itemLocation = (AutoCompleteTextView) findViewById(R.id.item_location);
         itemName.setAdapter(itemNameAdapter);
@@ -68,7 +76,8 @@ public class EditQueryActivity extends AppCompatActivity {
 
             @Override
             public void afterTextChanged(Editable s) {
-                SharedPreferences save = getPreferences(MODE_PRIVATE);
+                SharedPreferences save =
+                        getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
                 String currentName = EditQueryActivity.this.itemName.getText().toString();
                 if (itemMap.containsKey(currentName)) {
                     itemLocation.setText(itemMap.get(currentName).toString());
@@ -81,11 +90,13 @@ public class EditQueryActivity extends AppCompatActivity {
     }
 
     public void saveItem(View view) {
-        SharedPreferences save = getPreferences(MODE_PRIVATE);
+        SharedPreferences save = getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
         SharedPreferences.Editor editor = save.edit();
         editor.putString(itemName.getText().toString(), itemLocation.getText().toString());
         itemMap.put(itemName.getText().toString(), itemLocation.getText().toString());
         editor.commit();
+        TheBackupAgent theBackupAgent = new TheBackupAgent();
+        theBackupAgent.requestBackup(this);
     }
 
     @Override
