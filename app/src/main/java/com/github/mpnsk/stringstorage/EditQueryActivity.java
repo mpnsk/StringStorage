@@ -18,12 +18,17 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.Map;
+import java.util.List;
 
 public class EditQueryActivity extends AppCompatActivity {
     AutoCompleteTextView itemName;
+    private List<String> itemNames;
     AutoCompleteTextView itemLocation;
-    private Map<String, String> itemMap;
+    private List<String> itemLocations;
+    private TheBackupAgent theBackupAgent;
+    private ArrayAdapter<String> itemNameAdapter;
+    private ArrayAdapter<String> itemLocationAdapter;
+
 
     public void getSpeechInput(View view) {
         int requestCode = view.getId() % 10;
@@ -41,23 +46,24 @@ public class EditQueryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_query);
 
-        TheBackupAgent theBackupAgent = new TheBackupAgent();
+        theBackupAgent = new TheBackupAgent();
         int success = theBackupAgent.requestRestore(this);
         Log.d(Util.logKey, "requestRestore() = " + Integer.toString(success));
 
         SharedPreferences save = getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
-        itemMap = (Map<String, String>) save.getAll();
+//        save.getAll();
         //String[] allKeys = new String[save.getAll().keySet().size()];
         //String[] allValues = new String[save.getAll().values().size()];
         //allValues = save.getAll().values().toArray(allValues);
         //allKeys = save.getAll().keySet().toArray(allKeys);
-
-        ArrayAdapter itemNameAdapter = new ArrayAdapter(this,
+        itemNames = new ArrayList<>(save.getAll().keySet());
+        itemLocations = new ArrayList (save.getAll().values());
+        itemNameAdapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_dropdown_item_1line,
-                new ArrayList<String>(itemMap.keySet()));
-        ArrayAdapter itemLocationAdapter = new ArrayAdapter(this,
+                itemNames);
+        itemLocationAdapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_dropdown_item_1line,
-                new ArrayList<String>(itemMap.values()));
+                itemLocations);
         itemName = (AutoCompleteTextView) findViewById(R.id.item_name);
         itemLocation = (AutoCompleteTextView) findViewById(R.id.item_location);
         itemName.setAdapter(itemNameAdapter);
@@ -76,11 +82,11 @@ public class EditQueryActivity extends AppCompatActivity {
 
             @Override
             public void afterTextChanged(Editable s) {
-                SharedPreferences save =
-                        getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
+//                SharedPreferences save =
+//                        getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
                 String currentName = EditQueryActivity.this.itemName.getText().toString();
-                if (itemMap.containsKey(currentName)) {
-                    itemLocation.setText(itemMap.get(currentName).toString());
+                if (itemLocations.contains(currentName)) {
+                    itemLocation.setText(currentName);
                 } else {
                     itemLocation.setText("");
                 }
@@ -93,10 +99,24 @@ public class EditQueryActivity extends AppCompatActivity {
         SharedPreferences save = getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
         SharedPreferences.Editor editor = save.edit();
         editor.putString(itemName.getText().toString(), itemLocation.getText().toString());
-        itemMap.put(itemName.getText().toString(), itemLocation.getText().toString());
-        editor.commit();
-        TheBackupAgent theBackupAgent = new TheBackupAgent();
+
+        // the map needs the set updated for the autocomplete field
+        itemNames.add(itemName.getText().toString());
+        itemLocations.add(itemLocation.getText().toString());
+        editor.apply();
         theBackupAgent.requestBackup(this);
+
+//        Runnable run = new Runnable() {
+//            @Override
+//            public void run() {
+//                EditQueryActivity.update();
+//            }
+//        }
+    }
+
+    public void update() {
+        itemNameAdapter.notifyDataSetChanged();
+        itemLocationAdapter.notifyDataSetChanged();
     }
 
     @Override
