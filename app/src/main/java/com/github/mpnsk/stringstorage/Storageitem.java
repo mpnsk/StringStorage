@@ -1,6 +1,7 @@
 package com.github.mpnsk.stringstorage;
 
 import android.content.ContentValues;
+import android.database.Cursor;
 
 import com.github.mpnsk.stringstorage.database.StorageitemContract;
 
@@ -77,5 +78,11 @@ public class Storageitem {
 
     public void setTimestamp(String timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public Storageitem(Cursor cursor) {
+        setDescription(cursor.getString(cursor.getColumnIndex(StorageitemContract.DESCRIPTION)));
+        setLocation(cursor.getString(cursor.getColumnIndex(StorageitemContract.LOCATION)));
+        setTimestamp(cursor.getString(cursor.getColumnIndex(StorageitemContract.TIMESTAMP)));
     }
 }
