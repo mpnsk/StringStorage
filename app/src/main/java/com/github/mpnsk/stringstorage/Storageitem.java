@@ -7,22 +7,18 @@ import com.github.mpnsk.stringstorage.database.StorageitemContract;
 import java.sql.Timestamp;
 import java.util.Calendar;
 
-/**
- * Created by topsykrett on 23.05.16.
- */
 public class Storageitem {
 
-    public String description;
-    public String location;
-    public String timestamp;
+    private String description;
+    private String location;
+    private String timestamp;
 
     public Storageitem(String description, String location) {
         this.description = description;
         this.location = location;
 
         long now = Calendar.getInstance().getTime().getTime();
-        String timestamp = new Timestamp(now).toString();
-        this.timestamp = timestamp;
+        this.timestamp = new Timestamp(now).toString();
     }
 
     public Storageitem(String description, String location, String timestamp) {
@@ -47,8 +43,7 @@ public class Storageitem {
         Storageitem that = (Storageitem) o;
 
         if (!description.equals(that.description)) return false;
-        if (!location.equals(that.location)) return false;
-        return timestamp != null ? timestamp.equals(that.timestamp) : that.timestamp == null;
+        return location.equals(that.location) && (timestamp != null ? timestamp.equals(that.timestamp) : that.timestamp == null);
 
     }
 
@@ -58,5 +53,29 @@ public class Storageitem {
         result = 31 * result + location.hashCode();
         result = 31 * result + (timestamp != null ? timestamp.hashCode() : 0);
         return result;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(String timestamp) {
+        this.timestamp = timestamp;
     }
 }

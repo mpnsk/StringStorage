@@ -14,10 +14,12 @@ import org.junit.Test;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
-/**
- * Created by topsykrett on 23.05.16.
- */
+
 public class CRUDTest {
     private SqlHelper sqlHelper;
     private CRUD crud;
@@ -51,9 +53,9 @@ public class CRUDTest {
         } else {
             fail("Could not find item. Was it created?");
         }
-        assertEquals(readItem.description, writeItem.description);
-        assertEquals(readItem.location, writeItem.location);
-        assertEquals(readItem.timestamp, writeItem.timestamp);
+        assertEquals(readItem.getDescription(), writeItem.getDescription());
+        assertEquals(readItem.getLocation(), writeItem.getLocation());
+        assertEquals(readItem.getTimestamp(), writeItem.getTimestamp());
         assertEquals(readItem, writeItem);
         cursor.close();
     }
@@ -66,10 +68,27 @@ public class CRUDTest {
         values.put(StorageitemContract.LOCATION, itemValue[1]);
 
         db.insert(StorageitemContract.TABLE_NAME, null, values);
-        Storageitem storageitem = crud.read(itemValue[0]);
-        assertEquals("Should be equal, isnt! \"" + storageitem.description + "\" and \"" + itemValue[0] + "\"",
-                storageitem.description, itemValue[0]);
-        assertEquals(storageitem.location, itemValue[1]);
+        Storageitem storageitem = crud.read(null, StorageitemContract.DESCRIPTION + " = '" + itemValue[0] + "'", null);
+        assertEquals("Should be equal, isnt! \"" + storageitem.getLocation() + "\" and \"" + itemValue[0] + "\"",
+                storageitem.getDescription(), itemValue[0]);
+        assertEquals(storageitem.getLocation(), itemValue[1]);
+    }
+
+    @Test
+    public void testUpdate() throws Exception {
+        Storageitem notUpdated = new Storageitem("notUpdatedDesc", "notUpdatedLoc");
+        long rowId = crud.create(notUpdated);
+        int rowsAffected = db.update(
+                StorageitemContract.TABLE_NAME,
+                new Storageitem("updatedDesc", "updatedLoc").toContentvalues(),
+                StorageitemContract._ID + " = " + rowId, null);
+        if (rowsAffected == 0) {
+            fail("update failed");
+        }
+        Storageitem updated = crud.read(null, StorageitemContract._ID + " = " + rowId, null);
+        assertThat(updated.getDescription(), is(equalTo("updatedDesc")));
+        assertThat(updated.getLocation(), is(equalTo("updatedLoc")));
+        assertThat(updated.getTimestamp(), not(equalTo(notUpdated.getTimestamp())));
     }
 
     @After

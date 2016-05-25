@@ -7,14 +7,11 @@ import android.database.sqlite.SQLiteDatabase;
 
 import com.github.mpnsk.stringstorage.Storageitem;
 
-/**
- * Created by topsykrett on 23.05.16.
- */
 public class CRUD {
     private Context context;
     private SQLiteDatabase db;
 
-    public CRUD() {
+    private CRUD() {
     }
 
     public CRUD(Context context) {
@@ -24,6 +21,7 @@ public class CRUD {
     /**
      * Creates the argument Storageitem in SQLite.
      * <p>Instantiates it as ContentValues thorugh .getContentvalues first.</p>
+     *
      * @param item
      * @return The RowId in SQLite, -1 if it fails.
      */
@@ -33,20 +31,12 @@ public class CRUD {
         return db.insert(StorageitemContract.TABLE_NAME, null, values);
     }
 
-    public Storageitem read(String byDescription) throws Exception {
+    public Storageitem read(String[] select, String where, String[] whereArgs) throws Exception {
         db = new SqlHelper(context).getReadableDatabase();
-        Cursor cursor = db.query(StorageitemContract.TABLE_NAME,
-//                new String[]{"description"},
-                null,
-//                "description LIKE ?",
-                null,
-//                new String[]{byDescription},
-                null,
-                null,
-                null,
-                null);
-        String location;
-        Storageitem storageitem = null;
+        Cursor cursor = db.query(StorageitemContract.TABLE_NAME, select,
+                where, whereArgs,
+                null, null, null);
+        Storageitem storageitem;
         if (cursor.moveToFirst()) {
             storageitem = new Storageitem(
                     cursor.getString(cursor.getColumnIndex(StorageitemContract.DESCRIPTION)),
@@ -59,4 +49,6 @@ public class CRUD {
         db.close();
         return storageitem;
     }
+
+
 }
