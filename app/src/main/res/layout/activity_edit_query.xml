@@ -23,7 +23,6 @@
             android:id="@+id/micItemName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:imeOptions="actionNext"
             android:onClick="getSpeechInput"
             android:text="mic" />
     </LinearLayout>
@@ -51,7 +50,7 @@
         android:id="@+id/save_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:onClick="saveItem"
         android:text="@string/save" />
+    <!--android:onClick="TODO"-->
 
 </LinearLayout>

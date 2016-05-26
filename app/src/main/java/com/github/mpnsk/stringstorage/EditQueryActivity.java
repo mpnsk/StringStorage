@@ -3,7 +3,6 @@ package com.github.mpnsk.stringstorage;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import android.support.v7.app.AppCompatActivity;
@@ -22,10 +21,9 @@ import java.util.List;
 
 public class EditQueryActivity extends AppCompatActivity {
     AutoCompleteTextView itemName;
-    private List<String> itemNames;
     AutoCompleteTextView itemLocation;
+    private List<String> itemNames;
     private List<String> itemLocations;
-    private TheBackupAgent theBackupAgent;
     private ArrayAdapter<String> itemNameAdapter;
     private ArrayAdapter<String> itemLocationAdapter;
 
@@ -46,18 +44,14 @@ public class EditQueryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_query);
 
-        theBackupAgent = new TheBackupAgent();
-        int success = theBackupAgent.requestRestore(this);
-        Log.d(Util.logKey, "requestRestore() = " + Integer.toString(success));
+        ArrayList<String> list = new ArrayList<>();
+        list.add("a");
+        list.add("b");
+        list.add("c");
+        list.add("d");
 
-        SharedPreferences save = getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
-//        save.getAll();
-        //String[] allKeys = new String[save.getAll().keySet().size()];
-        //String[] allValues = new String[save.getAll().values().size()];
-        //allValues = save.getAll().values().toArray(allValues);
-        //allKeys = save.getAll().keySet().toArray(allKeys);
-        itemNames = new ArrayList<>(save.getAll().keySet());
-        itemLocations = new ArrayList (save.getAll().values());
+        itemNames = new ArrayList<>(list);
+        itemLocations = new ArrayList<>(list);
         itemNameAdapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_dropdown_item_1line,
                 itemNames);
@@ -82,8 +76,6 @@ public class EditQueryActivity extends AppCompatActivity {
 
             @Override
             public void afterTextChanged(Editable s) {
-//                SharedPreferences save =
-//                        getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
                 String currentName = EditQueryActivity.this.itemName.getText().toString();
                 if (itemLocations.contains(currentName)) {
                     itemLocation.setText(currentName);
@@ -93,30 +85,6 @@ public class EditQueryActivity extends AppCompatActivity {
             }
         });
 
-    }
-
-    public void saveItem(View view) {
-        SharedPreferences save = getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
-        SharedPreferences.Editor editor = save.edit();
-        editor.putString(itemName.getText().toString(), itemLocation.getText().toString());
-
-        // the map needs the set updated for the autocomplete field
-        itemNames.add(itemName.getText().toString());
-        itemLocations.add(itemLocation.getText().toString());
-        editor.apply();
-        theBackupAgent.requestBackup(this);
-
-//        Runnable run = new Runnable() {
-//            @Override
-//            public void run() {
-//                EditQueryActivity.update();
-//            }
-//        }
-    }
-
-    public void update() {
-        itemNameAdapter.notifyDataSetChanged();
-        itemLocationAdapter.notifyDataSetChanged();
     }
 
     @Override
