@@ -3,6 +3,7 @@ package com.github.mpnsk.stringstorage;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import android.support.v7.app.AppCompatActivity;
@@ -22,8 +23,9 @@ import java.util.List;
 public class EditQueryActivity extends AppCompatActivity {
     AutoCompleteTextView itemName;
     AutoCompleteTextView itemLocation;
-    private List<String> itemNames;
-    private List<String> itemLocations;
+    private List<String> storedNames;
+    private List<String> storedLocations;
+    private TheBackupAgent theBackupAgent;
     private ArrayAdapter<String> itemNameAdapter;
     private ArrayAdapter<String> itemLocationAdapter;
 
@@ -44,20 +46,24 @@ public class EditQueryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_query);
 
-        ArrayList<String> list = new ArrayList<>();
-        list.add("a");
-        list.add("b");
-        list.add("c");
-        list.add("d");
+        theBackupAgent = new TheBackupAgent();
+        int success = theBackupAgent.requestRestore(this);
+        Log.d(Util.logKey, "requestRestore() = " + Integer.toString(success));
 
-        itemNames = new ArrayList<>(list);
-        itemLocations = new ArrayList<>(list);
+        SharedPreferences save = getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
+//        save.getAll();
+        //String[] allKeys = new String[save.getAll().keySet().size()];
+        //String[] allValues = new String[save.getAll().values().size()];
+        //allValues = save.getAll().values().toArray(allValues);
+        //allKeys = save.getAll().keySet().toArray(allKeys);
+        storedNames = new ArrayList<>(save.getAll().keySet());
+        storedLocations = new ArrayList(save.getAll().values());
         itemNameAdapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_dropdown_item_1line,
-                itemNames);
+                storedNames);
         itemLocationAdapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_dropdown_item_1line,
-                itemLocations);
+                storedLocations);
         itemName = (AutoCompleteTextView) findViewById(R.id.item_name);
         itemLocation = (AutoCompleteTextView) findViewById(R.id.item_location);
         itemName.setAdapter(itemNameAdapter);
@@ -76,8 +82,10 @@ public class EditQueryActivity extends AppCompatActivity {
 
             @Override
             public void afterTextChanged(Editable s) {
+//                SharedPreferences save =
+//                        getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
                 String currentName = EditQueryActivity.this.itemName.getText().toString();
-                if (itemLocations.contains(currentName)) {
+                if (storedLocations.contains(currentName)) {
                     itemLocation.setText(currentName);
                 } else {
                     itemLocation.setText("");
@@ -85,6 +93,31 @@ public class EditQueryActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    public void saveItem(View view) {
+        SharedPreferences save = getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
+        SharedPreferences.Editor editor = save.edit();
+        editor.putString(itemName.getText().toString(), itemLocation.getText().toString());
+
+        // the map needs the set updated for the autocomplete field
+        storedNames.add(itemName.getText().toString());
+        storedLocations.add(itemLocation.getText().toString());
+        editor.apply();
+        theBackupAgent.requestBackup(this);
+
+        Runnable run = new Runnable() {
+            @Override
+            public void run() {
+                update();
+            }
+        };
+        new Thread(run).start();
+    }
+
+    public void update() {
+        itemNameAdapter.notifyDataSetChanged();
+        itemLocationAdapter.notifyDataSetChanged();
     }
 
     @Override
