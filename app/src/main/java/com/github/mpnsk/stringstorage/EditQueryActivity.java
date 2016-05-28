@@ -3,31 +3,36 @@ package com.github.mpnsk.stringstorage;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import android.support.v7.app.AppCompatActivity;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.ListView;
 import android.widget.Toast;
+
+import com.facebook.stetho.Stetho;
+import com.uphyca.stetho_realm.RealmInspectorModulesProvider;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import io.realm.Realm;
+import io.realm.RealmChangeListener;
+import io.realm.RealmConfiguration;
+import io.realm.RealmResults;
+
 public class EditQueryActivity extends AppCompatActivity {
-    AutoCompleteTextView itemName;
-    AutoCompleteTextView itemLocation;
-    private List<String> storedNames;
-    private List<String> storedLocations;
-    private TheBackupAgent theBackupAgent;
-    private ArrayAdapter<String> itemNameAdapter;
-    private ArrayAdapter<String> itemLocationAdapter;
+    AutoCompleteTextView itemNameTextbox;
+    AutoCompleteTextView itemLocationTextbox;
+    private List<String> itemNames;
+    private List<String> itemLocations;
+    private RealmResults<Storageitem> allItems;
+    private Realm realm;
 
 
     public void getSpeechInput(View view) {
@@ -46,78 +51,28 @@ public class EditQueryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_query);
 
-        theBackupAgent = new TheBackupAgent();
-        int success = theBackupAgent.requestRestore(this);
-        Log.d(Util.logKey, "requestRestore() = " + Integer.toString(success));
+        Stetho.initialize(
+                Stetho.newInitializerBuilder(this)
+                        .enableDumpapp(Stetho.defaultDumperPluginsProvider(this))
+                        .enableWebKitInspector(RealmInspectorModulesProvider.builder(this).build())
+                        .build());
 
-        SharedPreferences save = getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
-//        save.getAll();
-        //String[] allKeys = new String[save.getAll().keySet().size()];
-        //String[] allValues = new String[save.getAll().values().size()];
-        //allValues = save.getAll().values().toArray(allValues);
-        //allKeys = save.getAll().keySet().toArray(allKeys);
-        storedNames = new ArrayList<>(save.getAll().keySet());
-        storedLocations = new ArrayList(save.getAll().values());
-        itemNameAdapter = new ArrayAdapter<String>(this,
-                android.R.layout.simple_dropdown_item_1line,
-                storedNames);
-        itemLocationAdapter = new ArrayAdapter<String>(this,
-                android.R.layout.simple_dropdown_item_1line,
-                storedLocations);
-        itemName = (AutoCompleteTextView) findViewById(R.id.item_name);
-        itemLocation = (AutoCompleteTextView) findViewById(R.id.item_location);
-        itemName.setAdapter(itemNameAdapter);
-        itemLocation.setAdapter(itemLocationAdapter);
+        realm = Realm.getInstance(new RealmConfiguration.Builder(this).build());
 
-        itemName.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
 
-            }
+        itemNameTextbox = (AutoCompleteTextView) findViewById(R.id.item_name);
+        ArrayAdapter<String> itenNameadapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, itemNames);
+        itemNameTextbox.setAdapter(itenNameadapter);
 
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
+        itemLocationTextbox = (AutoCompleteTextView) findViewById(R.id.item_location);
+        ArrayAdapter<String> itemLocationAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, itemLocations);
+        itemLocationTextbox.setAdapter(itemLocationAdapter);
 
-            }
+        allItems = realm.where(Storageitem.class).findAll();
 
-            @Override
-            public void afterTextChanged(Editable s) {
-//                SharedPreferences save =
-//                        getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
-                String currentName = EditQueryActivity.this.itemName.getText().toString();
-                if (storedLocations.contains(currentName)) {
-                    itemLocation.setText(currentName);
-                } else {
-                    itemLocation.setText("");
-                }
-            }
-        });
+        ListView listView = (ListView) findViewById(R.id.listview);
+        listView.setAdapter(new StorageitemAdapter(this, allItems));
 
-    }
-
-    public void saveItem(View view) {
-        SharedPreferences save = getSharedPreferences(TheBackupAgent.PREFS_STRINGS, MODE_PRIVATE);
-        SharedPreferences.Editor editor = save.edit();
-        editor.putString(itemName.getText().toString(), itemLocation.getText().toString());
-
-        // the map needs the set updated for the autocomplete field
-        storedNames.add(itemName.getText().toString());
-        storedLocations.add(itemLocation.getText().toString());
-        editor.apply();
-        theBackupAgent.requestBackup(this);
-
-        Runnable run = new Runnable() {
-            @Override
-            public void run() {
-                update();
-            }
-        };
-        new Thread(run).start();
-    }
-
-    public void update() {
-        itemNameAdapter.notifyDataSetChanged();
-        itemLocationAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -155,9 +110,9 @@ public class EditQueryActivity extends AppCompatActivity {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     if (requestCode == R.id.micItemName % 10) {
-                        itemName.setText(thingsYouSaid.get(which));
+                        itemNameTextbox.setText(thingsYouSaid.get(which));
                     } else if (requestCode == R.id.micItemLocation % 10) {
-                        itemLocation.setText(thingsYouSaid.get(which));
+                        itemLocationTextbox.setText(thingsYouSaid.get(which));
                     }
 
                     Log.d("REQ+RES", requestCode + "+" + resultCode);
@@ -169,4 +124,34 @@ public class EditQueryActivity extends AppCompatActivity {
         }
     }
 
+    private void loadStorageitems() {
+        RealmConfiguration config = new RealmConfiguration.Builder(this).build();
+        Realm realm = Realm.getInstance(config);
+        allItems = realm.where(Storageitem.class).findAll();
+        for (Storageitem item :
+                allItems) {
+            itemNames.add(item.getDescription());
+            itemLocations.add(item.getLocation());
+        }
+        allItems.addChangeListener(new RealmChangeListener<RealmResults<Storageitem>>() {
+            @Override
+            public void onChange(RealmResults<Storageitem> element) {
+                Log.d("RealmResult", element.toString() + " changed!");
+            }
+        });
+        realm.close();
+    }
+
+    public void persistThisStorageitem(View view) {
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                Storageitem storageitem = realm.createObject(Storageitem.class);
+                storageitem.setDescription(itemNameTextbox.getText().toString());
+                storageitem.setLocation(itemLocationTextbox.getText().toString());
+            }
+        });
+
+
+    }
 }
