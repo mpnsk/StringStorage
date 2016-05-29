@@ -6,12 +6,17 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.PopupMenu;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -32,7 +37,10 @@ public class EditQueryActivity extends AppCompatActivity {
     private List<String> itemNames;
     private List<String> itemLocations;
     private RealmResults<Storageitem> allItems;
+    private RealmResults<Storageitem> allItemsDistinctName;
     private Realm realm;
+    private RealmConfiguration config;
+    private FilteringStorageitemAdapter adapter;
 
 
     public void getSpeechInput(View view) {
@@ -57,46 +65,136 @@ public class EditQueryActivity extends AppCompatActivity {
                         .enableWebKitInspector(RealmInspectorModulesProvider.builder(this).build())
                         .build());
 
-        realm = Realm.getInstance(new RealmConfiguration.Builder(this).build());
+        loadStorageitems();
 
+        realm = Realm.getInstance(config);
+        allItems = realm.where(Storageitem.class).findAll();
+        adapter = new FilteringStorageitemAdapter(this, allItems);
 
         itemNameTextbox = (AutoCompleteTextView) findViewById(R.id.item_name);
-        ArrayAdapter<String> itenNameadapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, itemNames);
-        itemNameTextbox.setAdapter(itenNameadapter);
+        ArrayAdapter<String> itemNameadapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, itemNames);
+        itemNameTextbox.setAdapter(itemNameadapter);
+
+        itemNameTextbox.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                adapter.getFilter().filter(itemNameTextbox.getText().toString());
+            }
+        });
+
 
         itemLocationTextbox = (AutoCompleteTextView) findViewById(R.id.item_location);
         ArrayAdapter<String> itemLocationAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, itemLocations);
         itemLocationTextbox.setAdapter(itemLocationAdapter);
 
-        allItems = realm.where(Storageitem.class).findAll();
-
         ListView listView = (ListView) findViewById(R.id.listview);
-        listView.setAdapter(new StorageitemAdapter(this, allItems));
+        assert listView != null;
+        listView.setAdapter(adapter);
+        listView.setDivider(null);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                showPopup(view, position);
+            }
+        });
+
+        adapter.getFilter().filter("");
 
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_edit_query, menu);
-        return true;
+    public void showPopup(View v, final int position) {
+        PopupMenu popup = new PopupMenu(this, v);
+        Menu menu = popup.getMenu();
+
+        menu.add("edit " + adapter.getItem(position).getDescription());
+        menu.getItem(0).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(EditQueryActivity.this);
+                final EditText input = new EditText(EditQueryActivity.this);
+                input.setText(adapter.getItem(position).getDescription());
+                builder.setView(input);
+                builder.setTitle("Description");
+                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        realm.executeTransaction(new Realm.Transaction() {
+                            @Override
+                            public void execute(Realm realm) {
+                                Storageitem item = adapter.getItem(position);
+                                item.setDescription(input.getText().toString());
+                            }
+                        });
+                    }
+                });
+                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+                builder.show();
+                return false;
+            }
+        });
+
+        menu.add("edit " + adapter.getItem(position).getLocation());
+        menu.getItem(1).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(EditQueryActivity.this);
+                final EditText input = new EditText(EditQueryActivity.this);
+                input.setText(adapter.getItem(position).getLocation());
+                builder.setView(input);
+                builder.setTitle("Location");
+                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        realm.executeTransaction(new Realm.Transaction() {
+                            @Override
+                            public void execute(Realm realm) {
+                                Storageitem item = adapter.getItem(position);
+                                item.setLocation(input.getText().toString());
+                            }
+                        });
+                    }
+                });
+                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+                builder.show();
+                return false;
+            }
+        });
+        menu.add("delete");
+        menu.getItem(2).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                realm.executeTransaction(new Realm.Transaction() {
+                    @Override
+                    public void execute(Realm realm) {
+                        Storageitem deleteItem = adapter.getItem(position);
+                        Toast.makeText(getBaseContext(), "deleting " + deleteItem.toString() + " ...", Toast.LENGTH_SHORT).show();
+                        deleteItem.deleteFromRealm();
+                        Toast.makeText(getBaseContext(), "Success!", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                return false;
+            }
+        });
+        popup.show();
     }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
 
     @Override
     protected void onActivityResult(final int requestCode, final int resultCode, Intent data) {
@@ -125,11 +223,15 @@ public class EditQueryActivity extends AppCompatActivity {
     }
 
     private void loadStorageitems() {
-        RealmConfiguration config = new RealmConfiguration.Builder(this).build();
-        Realm realm = Realm.getInstance(config);
+        itemNames = new ArrayList<>();
+        itemLocations = new ArrayList<>();
+        config = new RealmConfiguration.Builder(this).deleteRealmIfMigrationNeeded()
+                .build();
+        realm = Realm.getInstance(config);
         allItems = realm.where(Storageitem.class).findAll();
+        allItemsDistinctName = allItems.distinct("description");
         for (Storageitem item :
-                allItems) {
+                allItemsDistinctName) {
             itemNames.add(item.getDescription());
             itemLocations.add(item.getLocation());
         }
@@ -152,6 +254,7 @@ public class EditQueryActivity extends AppCompatActivity {
             }
         });
 
+        loadStorageitems();
 
     }
 }

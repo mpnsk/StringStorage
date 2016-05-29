@@ -3,10 +3,11 @@ package com.github.mpnsk.stringstorage;
 import java.util.Date;
 
 import io.realm.RealmObject;
+import io.realm.annotations.Index;
 
 public class Storageitem extends RealmObject {
 
-
+    @Index
     private String description;
     private String location;
     private long timestamp;
