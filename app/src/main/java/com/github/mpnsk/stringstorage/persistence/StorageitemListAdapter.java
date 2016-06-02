@@ -1,10 +1,12 @@
-package com.github.mpnsk.stringstorage;
+package com.github.mpnsk.stringstorage.persistence;
 
 import android.content.Context;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListAdapter;
 import android.widget.TextView;
+
+import com.github.mpnsk.stringstorage.R;
 
 import io.realm.OrderedRealmCollection;
 import io.realm.RealmBaseAdapter;
@@ -26,7 +28,7 @@ public class StorageitemListAdapter extends RealmBaseAdapter<Storageitem> implem
         } else {
             viewHolder = (ViewHolder) convertView.getTag();
         }
-//        Storageitem item = adapterData.get(position);
+
         Storageitem item = getItem(position);
         viewHolder.itemLocation.setText(item.getLocation());
         viewHolder.itemName.setText(item.getDescription());

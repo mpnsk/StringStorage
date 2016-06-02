@@ -5,6 +5,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.PopupMenu;
 import android.text.Editable;
@@ -21,42 +22,36 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import com.facebook.stetho.Stetho;
+import com.github.mpnsk.stringstorage.persistence.FilteringStorageitemAdapter;
+import com.github.mpnsk.stringstorage.persistence.Storageitem;
 import com.uphyca.stetho_realm.RealmInspectorModulesProvider;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.inject.Inject;
+
 import io.realm.Realm;
-import io.realm.RealmChangeListener;
-import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
 
 public class EditQueryActivity extends AppCompatActivity {
+    @Inject
+    public Realm realm;
     AutoCompleteTextView itemNameTextbox;
     AutoCompleteTextView itemLocationTextbox;
     private List<String> itemNames;
     private List<String> itemLocations;
     private RealmResults<Storageitem> allItems;
     private RealmResults<Storageitem> allItemsDistinctName;
-    private Realm realm;
-    private RealmConfiguration config;
     private FilteringStorageitemAdapter adapter;
 
-
-    public void getSpeechInput(View view) {
-        int requestCode = view.getId() % 10;
-        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        //i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, "en-US");
-        try {
-            startActivityForResult(i, requestCode);
-        } catch (Exception e) {
-            Toast.makeText(this, "Error initializing speech to text engine.", Toast.LENGTH_LONG).show();
-        }
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        MyApplication application = (MyApplication) getApplication();
+        application.getComponent().inject(this);
+
         setContentView(R.layout.activity_edit_query);
 
         Stetho.initialize(
@@ -67,11 +62,10 @@ public class EditQueryActivity extends AppCompatActivity {
 
         loadStorageitems();
 
-        realm = Realm.getInstance(config);
         allItems = realm.where(Storageitem.class).findAll();
         adapter = new FilteringStorageitemAdapter(this, allItems);
 
-        itemNameTextbox = (AutoCompleteTextView) findViewById(R.id.item_name);
+        itemNameTextbox = (AutoCompleteTextView) findViewById(R.id.edit_item_name);
         ArrayAdapter<String> itemNameadapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, itemNames);
         itemNameTextbox.setAdapter(itemNameadapter);
 
@@ -91,7 +85,7 @@ public class EditQueryActivity extends AppCompatActivity {
         });
 
 
-        itemLocationTextbox = (AutoCompleteTextView) findViewById(R.id.item_location);
+        itemLocationTextbox = (AutoCompleteTextView) findViewById(R.id.edit_item_location);
         ArrayAdapter<String> itemLocationAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, itemLocations);
         itemLocationTextbox.setAdapter(itemLocationAdapter);
 
@@ -107,7 +101,6 @@ public class EditQueryActivity extends AppCompatActivity {
         });
 
         adapter.getFilter().filter("");
-
     }
 
     public void showPopup(View v, final int position) {
@@ -115,36 +108,7 @@ public class EditQueryActivity extends AppCompatActivity {
         Menu menu = popup.getMenu();
 
         menu.add("edit " + adapter.getItem(position).getDescription());
-        menu.getItem(0).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(EditQueryActivity.this);
-                final EditText input = new EditText(EditQueryActivity.this);
-                input.setText(adapter.getItem(position).getDescription());
-                builder.setView(input);
-                builder.setTitle("Description");
-                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        realm.executeTransaction(new Realm.Transaction() {
-                            @Override
-                            public void execute(Realm realm) {
-                                Storageitem item = adapter.getItem(position);
-                                item.setDescription(input.getText().toString());
-                            }
-                        });
-                    }
-                });
-                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.cancel();
-                    }
-                });
-                builder.show();
-                return false;
-            }
-        });
+        menu.getItem(0).setOnMenuItemClickListener(getMenuItemClickListener(position));
 
         menu.add("edit " + adapter.getItem(position).getLocation());
         menu.getItem(1).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
@@ -194,6 +158,43 @@ public class EditQueryActivity extends AppCompatActivity {
             }
         });
         popup.show();
+//        realm.close();
+    }
+
+    @NonNull
+    private MenuItem.OnMenuItemClickListener getMenuItemClickListener(final int position) {
+        return new MenuItem.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(EditQueryActivity.this);
+                final EditText input = new EditText(EditQueryActivity.this);
+
+
+                input.setText(adapter.getItem(position).getDescription());
+                builder.setView(input);
+                builder.setTitle("Description");
+                builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        realm.executeTransaction(new Realm.Transaction() {
+                            @Override
+                            public void execute(Realm realm) {
+                                Storageitem item = adapter.getItem(position);
+                                item.setDescription(input.getText().toString());
+                            }
+                        });
+                    }
+                });
+                builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+                builder.show();
+                return false;
+            }
+        };
     }
 
     @Override
@@ -225,23 +226,14 @@ public class EditQueryActivity extends AppCompatActivity {
     private void loadStorageitems() {
         itemNames = new ArrayList<>();
         itemLocations = new ArrayList<>();
-        config = new RealmConfiguration.Builder(this).deleteRealmIfMigrationNeeded()
-                .build();
-        realm = Realm.getInstance(config);
-        allItems = realm.where(Storageitem.class).findAll();
+        RealmResults<Storageitem> allItems = realm.where(Storageitem.class).findAll();
         allItemsDistinctName = allItems.distinct("description");
         for (Storageitem item :
                 allItemsDistinctName) {
             itemNames.add(item.getDescription());
             itemLocations.add(item.getLocation());
         }
-        allItems.addChangeListener(new RealmChangeListener<RealmResults<Storageitem>>() {
-            @Override
-            public void onChange(RealmResults<Storageitem> element) {
-                Log.d("RealmResult", element.toString() + " changed!");
-            }
-        });
-        realm.close();
+
     }
 
     public void persistThisStorageitem(View view) {
@@ -254,7 +246,17 @@ public class EditQueryActivity extends AppCompatActivity {
             }
         });
 
-        loadStorageitems();
 
+    }
+
+    public void getSpeechInput(View view) {
+        int requestCode = view.getId() % 10;
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        //i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, "en-US");
+        try {
+            startActivityForResult(i, requestCode);
+        } catch (Exception e) {
+            Toast.makeText(this, "Error initializing speech to text engine.", Toast.LENGTH_LONG).show();
+        }
     }
 }

@@ -1,5 +1,7 @@
 package com.github.mpnsk.stringstorage;
 
+import com.github.mpnsk.stringstorage.persistence.Storageitem;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;

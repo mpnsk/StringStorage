@@ -1,4 +1,4 @@
-package com.github.mpnsk.stringstorage;
+package com.github.mpnsk.stringstorage.persistence;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -8,9 +8,6 @@ import java.util.List;
 import io.realm.OrderedRealmCollection;
 import io.realm.RealmResults;
 
-/**
- * Created by topsykrett on 29.05.16.
- */
 public class FilteringStorageitemAdapter extends FilterableRealmBaseAdapter {
 
     public FilteringStorageitemAdapter(Context context, OrderedRealmCollection<Storageitem> data) {

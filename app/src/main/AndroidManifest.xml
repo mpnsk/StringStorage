@@ -3,6 +3,7 @@
     package="com.github.mpnsk.stringstorage">
 
     <application
+        android:name=".MyApplication"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme">
@@ -19,5 +20,4 @@
             android:name="com.google.android.backup.api_key"
             android:value="AEdPqrEAAAAI_lY3FyX_OSZogUujyNgTCXrp7CIVYb67APpJuQ" />
     </application>
-
 </manifest>

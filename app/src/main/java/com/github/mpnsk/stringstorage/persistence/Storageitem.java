@@ -1,4 +1,4 @@
-package com.github.mpnsk.stringstorage;
+package com.github.mpnsk.stringstorage.persistence;
 
 import java.util.Date;
 
