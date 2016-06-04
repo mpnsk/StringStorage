@@ -1,21 +1,23 @@
-package com.github.mpnsk.stringstorage.persistence;
+package com.github.mpnsk.stringstorage.persistence.adapter;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.widget.Filter;
 import android.widget.Filterable;
 
+import com.github.mpnsk.stringstorage.persistence.Storageitem;
+
 import java.util.List;
 
 import io.realm.OrderedRealmCollection;
 import io.realm.RealmResults;
 
-public abstract class FilterableRealmBaseAdapter extends StorageitemListAdapter implements Filterable {
+public abstract class FilterableRealmListAdapter extends StorageitemListAdapter implements Filterable {
 
     private final RealmResults<Storageitem> mRealmObjectList;
     private List<Storageitem> mResults;
 
-    public FilterableRealmBaseAdapter(Context context, OrderedRealmCollection<Storageitem> data) {
+    public FilterableRealmListAdapter(Context context, OrderedRealmCollection<Storageitem> data) {
         super(context, data);
         mRealmObjectList = data.where().findAll();
     }

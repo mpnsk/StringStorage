@@ -13,6 +13,6 @@ public class RealmTest {
     @Provides
     @Singleton
     RealmConfiguration provideRealmConfiguration(Context context) {
-        return new RealmConfiguration.Builder(context).name("test.realm").build();
+        return new RealmConfiguration.Builder(context).name("test.realm").inMemory().build();
     }
 }

@@ -19,11 +19,13 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.facebook.stetho.Stetho;
-import com.github.mpnsk.stringstorage.persistence.FilteringStorageitemAdapter;
 import com.github.mpnsk.stringstorage.persistence.Storageitem;
+import com.github.mpnsk.stringstorage.persistence.adapter.FilteringForLocationStorageitemAdapter;
+import com.github.mpnsk.stringstorage.persistence.adapter.FilteringForNameStorageitemAdapter;
 import com.uphyca.stetho_realm.RealmInspectorModulesProvider;
 
 import java.util.ArrayList;
@@ -43,7 +45,7 @@ public class EditQueryActivity extends AppCompatActivity {
     private List<String> itemLocations;
     private RealmResults<Storageitem> allItems;
     private RealmResults<Storageitem> allItemsDistinctName;
-    private FilteringStorageitemAdapter adapter;
+    private FilteringForNameStorageitemAdapter adapterFilteringName;
 
 
     @Override
@@ -63,12 +65,11 @@ public class EditQueryActivity extends AppCompatActivity {
         loadStorageitems();
 
         allItems = realm.where(Storageitem.class).findAll();
-        adapter = new FilteringStorageitemAdapter(this, allItems);
+        adapterFilteringName = new FilteringForNameStorageitemAdapter(this, allItems);
 
         itemNameTextbox = (AutoCompleteTextView) findViewById(R.id.edit_item_name);
-        ArrayAdapter<String> itemNameadapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, itemNames);
-        itemNameTextbox.setAdapter(itemNameadapter);
-
+        assert itemNameTextbox != null;
+        itemNameTextbox.setAdapter(adapterFilteringName);
         itemNameTextbox.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -80,18 +81,21 @@ public class EditQueryActivity extends AppCompatActivity {
 
             @Override
             public void afterTextChanged(Editable s) {
-                adapter.getFilter().filter(itemNameTextbox.getText().toString());
+                adapterFilteringName.getFilter().filter(itemNameTextbox.getText().toString());
             }
         });
 
 
         itemLocationTextbox = (AutoCompleteTextView) findViewById(R.id.edit_item_location);
         ArrayAdapter<String> itemLocationAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, itemLocations);
-        itemLocationTextbox.setAdapter(itemLocationAdapter);
+
+        FilteringForLocationStorageitemAdapter filteringForLocation = new FilteringForLocationStorageitemAdapter(this, allItems);
+
+        itemLocationTextbox.setAdapter(filteringForLocation);
 
         ListView listView = (ListView) findViewById(R.id.listview);
         assert listView != null;
-        listView.setAdapter(adapter);
+        listView.setAdapter(adapterFilteringName);
         listView.setDivider(null);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -100,23 +104,23 @@ public class EditQueryActivity extends AppCompatActivity {
             }
         });
 
-        adapter.getFilter().filter("");
+        adapterFilteringName.getFilter().filter("");
     }
 
     public void showPopup(View v, final int position) {
         PopupMenu popup = new PopupMenu(this, v);
         Menu menu = popup.getMenu();
 
-        menu.add("edit " + adapter.getItem(position).getDescription());
+        menu.add("edit " + adapterFilteringName.getItem(position).getDescription());
         menu.getItem(0).setOnMenuItemClickListener(getMenuItemClickListener(position));
 
-        menu.add("edit " + adapter.getItem(position).getLocation());
+        menu.add("edit " + adapterFilteringName.getItem(position).getLocation());
         menu.getItem(1).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
                 AlertDialog.Builder builder = new AlertDialog.Builder(EditQueryActivity.this);
                 final EditText input = new EditText(EditQueryActivity.this);
-                input.setText(adapter.getItem(position).getLocation());
+                input.setText(adapterFilteringName.getItem(position).getLocation());
                 builder.setView(input);
                 builder.setTitle("Location");
                 builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -125,7 +129,7 @@ public class EditQueryActivity extends AppCompatActivity {
                         realm.executeTransaction(new Realm.Transaction() {
                             @Override
                             public void execute(Realm realm) {
-                                Storageitem item = adapter.getItem(position);
+                                Storageitem item = adapterFilteringName.getItem(position);
                                 item.setLocation(input.getText().toString());
                             }
                         });
@@ -148,7 +152,7 @@ public class EditQueryActivity extends AppCompatActivity {
                 realm.executeTransaction(new Realm.Transaction() {
                     @Override
                     public void execute(Realm realm) {
-                        Storageitem deleteItem = adapter.getItem(position);
+                        Storageitem deleteItem = adapterFilteringName.getItem(position);
                         Toast.makeText(getBaseContext(), "deleting " + deleteItem.toString() + " ...", Toast.LENGTH_SHORT).show();
                         deleteItem.deleteFromRealm();
                         Toast.makeText(getBaseContext(), "Success!", Toast.LENGTH_SHORT).show();
@@ -170,7 +174,7 @@ public class EditQueryActivity extends AppCompatActivity {
                 final EditText input = new EditText(EditQueryActivity.this);
 
 
-                input.setText(adapter.getItem(position).getDescription());
+                input.setText(adapterFilteringName.getItem(position).getDescription());
                 builder.setView(input);
                 builder.setTitle("Description");
                 builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -179,7 +183,7 @@ public class EditQueryActivity extends AppCompatActivity {
                         realm.executeTransaction(new Realm.Transaction() {
                             @Override
                             public void execute(Realm realm) {
-                                Storageitem item = adapter.getItem(position);
+                                Storageitem item = adapterFilteringName.getItem(position);
                                 item.setDescription(input.getText().toString());
                             }
                         });
@@ -245,8 +249,22 @@ public class EditQueryActivity extends AppCompatActivity {
                 storageitem.setLocation(itemLocationTextbox.getText().toString());
             }
         });
+    }
 
+    public void clearTextboxes(View view) {
+        itemNameTextbox.setText("");
+        itemLocationTextbox.setText("");
+    }
 
+    public void setTextboxes(View view) {
+        TextView textViewName = (TextView) view.findViewById(R.id.item_name);
+        String name = textViewName.getText().toString();
+        itemNameTextbox.setText(name);
+        TextView textViewlocation = (TextView) view.findViewById(R.id.item_location);
+        String location = textViewlocation.getText().toString();
+        itemLocationTextbox.setText(location);
+        itemNameTextbox.clearFocus();
+        itemLocationTextbox.clearFocus();
     }
 
     public void getSpeechInput(View view) {

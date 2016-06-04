@@ -1,4 +1,4 @@
-package com.github.mpnsk.stringstorage.persistence;
+package com.github.mpnsk.stringstorage.persistence.adapter;
 
 import android.content.Context;
 import android.view.View;
@@ -7,6 +7,7 @@ import android.widget.ListAdapter;
 import android.widget.TextView;
 
 import com.github.mpnsk.stringstorage.R;
+import com.github.mpnsk.stringstorage.persistence.Storageitem;
 
 import io.realm.OrderedRealmCollection;
 import io.realm.RealmBaseAdapter;

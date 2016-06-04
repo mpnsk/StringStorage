@@ -1,59 +1,59 @@
 package com.github.mpnsk.stringstorage;
 
-import android.support.test.espresso.ViewInteraction;
 import android.support.test.rule.ActivityTestRule;
 
-import com.github.mpnsk.stringstorage.di.TestComponent;
-
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-
-import io.realm.Realm;
 
 import static android.support.test.espresso.Espresso.onData;
 import static android.support.test.espresso.Espresso.onView;
 import static android.support.test.espresso.action.ViewActions.click;
+import static android.support.test.espresso.action.ViewActions.closeSoftKeyboard;
 import static android.support.test.espresso.action.ViewActions.typeText;
 import static android.support.test.espresso.assertion.ViewAssertions.matches;
-import static android.support.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static android.support.test.espresso.matcher.RootMatchers.isPlatformPopup;
 import static android.support.test.espresso.matcher.ViewMatchers.withId;
+import static android.support.test.espresso.matcher.ViewMatchers.withText;
 import static org.hamcrest.CoreMatchers.anything;
 
 public class EditQueryActivityTest {
 
     @Rule
     public ActivityTestRule<EditQueryActivity> mActivityRule = new ActivityTestRule<EditQueryActivity>(EditQueryActivity.class);
-    Realm realm;
-    private TestComponent component;
 
-    @Before
-    public void setUp() throws Exception {
+    @Test
+    public void testCreate() {
+        createEntry("item-name", "item-location");
+        onView(withId(R.id.edit_item_name));
     }
 
-    @After
-    public void tearDown() throws Exception {
+    private void createEntry(String name, String location) {
+        onView(withId(R.id.edit_item_name))
+                .perform(click(), typeText(name), closeSoftKeyboard());
+        onView(withId(R.id.edit_item_location))
+                .perform(typeText(location));
+        onView(withId(R.id.button_save));
 
     }
 
     @Test
     public void testShowPopup() throws Exception {
+        createEntry("item-name", "item-location");
+        onView(withId(R.id.button_clear))
+                .perform(click());
 
-//        onData(anything()).inAdapterView(withId(R.id.listview)).atPosition(0).perform(click());
-//        ViewInteraction var = onView(withText(containsString("edit ")));
-//        String interesting = var.toString();
-        ViewInteraction itemName = onView(withId(R.id.edit_item_name));
-        itemName.check(matches(isDisplayed()));
-        itemName.perform(click(), typeText("edited-item-name"), click());
-        ViewInteraction itemLocation = onView(withId(R.id.edit_item_location));
-        itemLocation.check(matches(isDisplayed()));
-        itemLocation.perform(click(), typeText("edited-item-location"), click());
-        onView(withId(R.id.save_button)).check(matches(isDisplayed())).perform(click());
-//        onData(withText(containsString("xxx"))).perform(click());
+        onView(withId(R.id.edit_item_name)).perform(click(), typeText("item"), closeSoftKeyboard())
 
+
+                .inRoot(isPlatformPopup())
+//                .inRoot(withDecorView(not(is(mActivityRule.getActivity().getWindow().getDecorView()))))
+                .perform(click());
+        onView(withId(R.id.edit_item_location))
+                .check(matches(withText("item-location")));
+//        onData(allOf(instanceOf(String.class), is(containsString("edi"))));
+
+        onView(withId(R.id.edit_item_location)).perform(click(), typeText("location"));
         onData(anything()).inAdapterView(withId(R.id.listview)).atPosition(0).perform(click());
-        //
 
     }
 }
