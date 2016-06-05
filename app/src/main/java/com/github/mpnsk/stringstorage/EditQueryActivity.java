@@ -26,6 +26,7 @@ import com.facebook.stetho.Stetho;
 import com.github.mpnsk.stringstorage.persistence.Storageitem;
 import com.github.mpnsk.stringstorage.persistence.adapter.FilteringForLocationStorageitemAdapter;
 import com.github.mpnsk.stringstorage.persistence.adapter.FilteringForNameStorageitemAdapter;
+import com.github.mpnsk.stringstorage.persistence.adapter.generic.FilteringRealmBaseAdapter;
 import com.uphyca.stetho_realm.RealmInspectorModulesProvider;
 
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import java.util.List;
 import javax.inject.Inject;
 
 import io.realm.Realm;
+import io.realm.RealmObject;
 import io.realm.RealmResults;
 
 public class EditQueryActivity extends AppCompatActivity {
@@ -66,10 +68,12 @@ public class EditQueryActivity extends AppCompatActivity {
 
         allItems = realm.where(Storageitem.class).findAll();
         adapterFilteringName = new FilteringForNameStorageitemAdapter(this, allItems);
+        FilteringRealmBaseAdapter filteringRealmBaseAdapter = new FilteringRealmBaseAdapter(this, android.R.layout.simple_dropdown_item_1line, allItemsDistinctName, "description");
 
         itemNameTextbox = (AutoCompleteTextView) findViewById(R.id.edit_item_name);
         assert itemNameTextbox != null;
-        itemNameTextbox.setAdapter(adapterFilteringName);
+//        itemNameTextbox.setAdapter(adapterFilteringName);
+        itemNameTextbox.setAdapter(filteringRealmBaseAdapter);
         itemNameTextbox.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -154,7 +158,10 @@ public class EditQueryActivity extends AppCompatActivity {
                     public void execute(Realm realm) {
                         Storageitem deleteItem = adapterFilteringName.getItem(position);
                         Toast.makeText(getBaseContext(), "deleting " + deleteItem.toString() + " ...", Toast.LENGTH_SHORT).show();
-                        deleteItem.deleteFromRealm();
+
+                        RealmObject.deleteFromRealm(deleteItem);
+//                        deleteItem.deleteFromRealm();
+
                         Toast.makeText(getBaseContext(), "Success!", Toast.LENGTH_SHORT).show();
                     }
                 });
@@ -251,7 +258,7 @@ public class EditQueryActivity extends AppCompatActivity {
         });
     }
 
-    public void clearTextboxes(View view) {
+    public void clearTextBoxes() {
         itemNameTextbox.setText("");
         itemLocationTextbox.setText("");
     }
@@ -265,6 +272,20 @@ public class EditQueryActivity extends AppCompatActivity {
         itemLocationTextbox.setText(location);
         itemNameTextbox.clearFocus();
         itemLocationTextbox.clearFocus();
+    }
+
+    public void deleteFromRealm(View view) {
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                RealmResults<Storageitem> items = realm.where(Storageitem.class)
+                        .contains("description", itemNameTextbox.getText().toString())
+                        .contains("location", itemLocationTextbox.getText().toString())
+                        .findAll();
+                items.deleteAllFromRealm();
+            }
+        });
+        clearTextBoxes();
     }
 
     public void getSpeechInput(View view) {

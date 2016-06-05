@@ -68,13 +68,14 @@
             android:id="@+id/button"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:onClick="deleteFromRealm"
             android:text="@string/delete" />
 
         <Button
             android:id="@+id/button_clear"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="clearTextboxes"
+            android:onClick="clearTextBoxes"
             android:text="@string/textboxes_clear" />
     </LinearLayout>
 
