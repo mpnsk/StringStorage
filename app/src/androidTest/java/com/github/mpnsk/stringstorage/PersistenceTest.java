@@ -1,6 +1,6 @@
 package com.github.mpnsk.stringstorage;
 
-import com.github.mpnsk.stringstorage.persistence.Storageitem;
+import com.github.mpnsk.stringstorage.persistence.StorageItem;
 
 import org.junit.After;
 import org.junit.Before;
@@ -35,14 +35,14 @@ public class PersistenceTest {
 
     @Test
     public void testCrud() {
-        RealmResults<Storageitem> noResult = realm.where(Storageitem.class).findAll();
+        RealmResults<StorageItem> noResult = realm.where(StorageItem.class).findAll();
         assertThat(noResult.size(), is(0));
         realm.beginTransaction();
-        Storageitem item = realm.createObject(Storageitem.class);
+        StorageItem item = realm.createObject(StorageItem.class);
         item.setDescription("Desc");
         item.setLocation("Loc");
         realm.commitTransaction();
-        RealmResults<Storageitem> someResult = realm.where(Storageitem.class).findAll();
+        RealmResults<StorageItem> someResult = realm.where(StorageItem.class).findAll();
         assertThat(someResult.first(), equalTo(item));
 
     }

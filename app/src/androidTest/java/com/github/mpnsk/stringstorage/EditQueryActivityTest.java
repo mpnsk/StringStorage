@@ -1,5 +1,6 @@
 package com.github.mpnsk.stringstorage;
 
+import android.support.test.espresso.ViewInteraction;
 import android.support.test.rule.ActivityTestRule;
 
 import org.junit.Rule;
@@ -15,16 +16,43 @@ import static android.support.test.espresso.matcher.RootMatchers.isPlatformPopup
 import static android.support.test.espresso.matcher.ViewMatchers.withId;
 import static android.support.test.espresso.matcher.ViewMatchers.withText;
 import static org.hamcrest.CoreMatchers.anything;
+import static org.hamcrest.CoreMatchers.not;
 
 public class EditQueryActivityTest {
 
+    private final ViewInteraction onViewName;
+    private final ViewInteraction onViewLocation;
     @Rule
-    public ActivityTestRule<EditQueryActivity> mActivityRule = new ActivityTestRule<EditQueryActivity>(EditQueryActivity.class);
+    public ActivityTestRule<EditQueryActivity> mActivityRule = new ActivityTestRule<>(EditQueryActivity.class);
+
+    public EditQueryActivityTest() {
+        onViewName = onView(withId(R.id.edit_item_name));
+        onViewLocation = onView(withId(R.id.edit_item_location));
+    }
+
+    @Test
+    public void testThis() {
+        createEntry("this", "that");
+        createEntry("this2", "that2");
+    }
+
+    @Test
+    public void testThat() {
+        createEntry("this3", "that3");
+        createEntry("this4", "that4");
+    }
 
     @Test
     public void testCreate() {
-        createEntry("item-name", "item-location");
-        onView(withId(R.id.edit_item_name));
+        String itemName = "arbitrary name";
+        String itemLocation = "item-location";
+        createEntry(itemName, itemLocation);
+        onData(anything()).inAdapterView(withId(R.id.listview))
+                // list should be empty so we just take the first item
+                .atPosition(0)
+                .onChildView(withId(R.id.item_name))
+                .check(matches(withText(itemName)))
+                .check(matches(not(withText("other text"))));
     }
 
     private void createEntry(String name, String location) {
@@ -32,28 +60,26 @@ public class EditQueryActivityTest {
                 .perform(click(), typeText(name), closeSoftKeyboard());
         onView(withId(R.id.edit_item_location))
                 .perform(typeText(location));
-        onView(withId(R.id.button_save));
+        onView(withId(R.id.button_save))
+                .perform(click());
 
     }
 
     @Test
-    public void testShowPopup() throws Exception {
-        createEntry("item-name", "item-location");
-        onView(withId(R.id.button_clear))
-                .perform(click());
+    public void testAutoComplete() throws Exception {
+        String testName = "item-name";
+        String testNameBeginsWith = "item-";
+        String testLocation = "item-location";
+        createEntry(testName, testLocation);
 
-        onView(withId(R.id.edit_item_name)).perform(click(), typeText("item"), closeSoftKeyboard())
+        // clear the textboxes to test autocomplete
+        onView(withId(R.id.button_clear)).perform(click());
 
+        onViewName.perform(click(), typeText(testNameBeginsWith), closeSoftKeyboard());
+        onView(withText(testName)).inRoot(isPlatformPopup()).perform(click());
+        onViewName.check(matches(withText(testName)));
 
-                .inRoot(isPlatformPopup())
-//                .inRoot(withDecorView(not(is(mActivityRule.getActivity().getWindow().getDecorView()))))
-                .perform(click());
-        onView(withId(R.id.edit_item_location))
-                .check(matches(withText("item-location")));
-//        onData(allOf(instanceOf(String.class), is(containsString("edi"))));
-
-        onView(withId(R.id.edit_item_location)).perform(click(), typeText("location"));
         onData(anything()).inAdapterView(withId(R.id.listview)).atPosition(0).perform(click());
-
+        onViewLocation.check(matches(withText(testLocation)));
     }
 }
