@@ -1,6 +1,7 @@
 package com.github.mpnsk.stringstorage;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
@@ -23,10 +24,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.facebook.stetho.Stetho;
-import com.github.mpnsk.stringstorage.persistence.Storageitem;
-import com.github.mpnsk.stringstorage.persistence.adapter.FilteringForLocationStorageitemAdapter;
-import com.github.mpnsk.stringstorage.persistence.adapter.FilteringForNameStorageitemAdapter;
+import com.github.mpnsk.stringstorage.persistence.StorageItem;
 import com.github.mpnsk.stringstorage.persistence.adapter.generic.FilteringRealmBaseAdapter;
+import com.github.mpnsk.stringstorage.persistence.adapter.generic.FilteringRealmListAdapter;
+import com.github.mpnsk.stringstorage.persistence.adapter.generic.IMyFilter;
 import com.uphyca.stetho_realm.RealmInspectorModulesProvider;
 
 import java.util.ArrayList;
@@ -35,7 +36,9 @@ import java.util.List;
 import javax.inject.Inject;
 
 import io.realm.Realm;
+import io.realm.RealmCollection;
 import io.realm.RealmObject;
+import io.realm.RealmQuery;
 import io.realm.RealmResults;
 
 public class EditQueryActivity extends AppCompatActivity {
@@ -45,9 +48,9 @@ public class EditQueryActivity extends AppCompatActivity {
     AutoCompleteTextView itemLocationTextbox;
     private List<String> itemNames;
     private List<String> itemLocations;
-    private RealmResults<Storageitem> allItems;
-    private RealmResults<Storageitem> allItemsDistinctName;
-    private FilteringForNameStorageitemAdapter adapterFilteringName;
+    private RealmResults<StorageItem> allItems;
+    private RealmResults<StorageItem> allItemsDistinctName;
+    private FilteringRealmListAdapter listAdapter;
 
 
     @Override
@@ -58,48 +61,37 @@ public class EditQueryActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_edit_query);
 
-        Stetho.initialize(
-                Stetho.newInitializerBuilder(this)
-                        .enableDumpapp(Stetho.defaultDumperPluginsProvider(this))
-                        .enableWebKitInspector(RealmInspectorModulesProvider.builder(this).build())
-                        .build());
-
-        loadStorageitems();
-
-        allItems = realm.where(Storageitem.class).findAll();
-        adapterFilteringName = new FilteringForNameStorageitemAdapter(this, allItems);
-        FilteringRealmBaseAdapter filteringRealmBaseAdapter = new FilteringRealmBaseAdapter(this, android.R.layout.simple_dropdown_item_1line, allItemsDistinctName, "description");
+        initStetho();
 
         itemNameTextbox = (AutoCompleteTextView) findViewById(R.id.edit_item_name);
-        assert itemNameTextbox != null;
-//        itemNameTextbox.setAdapter(adapterFilteringName);
-        itemNameTextbox.setAdapter(filteringRealmBaseAdapter);
-        itemNameTextbox.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                adapterFilteringName.getFilter().filter(itemNameTextbox.getText().toString());
-            }
-        });
-
-
         itemLocationTextbox = (AutoCompleteTextView) findViewById(R.id.edit_item_location);
-        ArrayAdapter<String> itemLocationAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, itemLocations);
+        allItems = realm.where(StorageItem.class).findAll();
+        allItemsDistinctName = allItems.distinct("description");
 
-        FilteringForLocationStorageitemAdapter filteringForLocation = new FilteringForLocationStorageitemAdapter(this, allItems);
+        listAdapter =
+                new FilteringRealmListAdapter(this, R.layout.linearlist, allItems, new IMyFilter<StorageItem, StorageItem>() {
+                    @Override
+                    public List<StorageItem> performRealmFiltering(@NonNull CharSequence constraint, RealmCollection<StorageItem> results) {
+                        RealmQuery<StorageItem> query = results.where();
+                        final String[] filters = {"description", "location"};
+                        final String[] constraints = constraint.toString().split(";");
+                        assert constraints.length >= filters.length;
+                        for (int i = 0; i < constraints.length; i++) {
+                            query = query.contains(filters[i], constraints[i]);
+                        }
+                        return query.findAll();
+                    }
+                });
 
-        itemLocationTextbox.setAdapter(filteringForLocation);
+
+        itemNameTextbox.setAdapter(new NameAdapter().invoke(this));
+        new SetupTextWatcher().invoke();
+
+
+//        itemLocationTextbox.setAdapter();
 
         ListView listView = (ListView) findViewById(R.id.listview);
-        assert listView != null;
-        listView.setAdapter(adapterFilteringName);
+        listView.setAdapter(listAdapter);
         listView.setDivider(null);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -108,23 +100,30 @@ public class EditQueryActivity extends AppCompatActivity {
             }
         });
 
-        adapterFilteringName.getFilter().filter("");
+    }
+
+    private void initStetho() {
+        Stetho.initialize(
+                Stetho.newInitializerBuilder(this)
+                        .enableDumpapp(Stetho.defaultDumperPluginsProvider(this))
+                        .enableWebKitInspector(RealmInspectorModulesProvider.builder(this).build())
+                        .build());
     }
 
     public void showPopup(View v, final int position) {
         PopupMenu popup = new PopupMenu(this, v);
         Menu menu = popup.getMenu();
 
-        menu.add("edit " + adapterFilteringName.getItem(position).getDescription());
+        menu.add("edit " + listAdapter.getItem(position).getDescription());
         menu.getItem(0).setOnMenuItemClickListener(getMenuItemClickListener(position));
 
-        menu.add("edit " + adapterFilteringName.getItem(position).getLocation());
+        menu.add("edit " + listAdapter.getItem(position).getLocation());
         menu.getItem(1).setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
                 AlertDialog.Builder builder = new AlertDialog.Builder(EditQueryActivity.this);
                 final EditText input = new EditText(EditQueryActivity.this);
-                input.setText(adapterFilteringName.getItem(position).getLocation());
+                input.setText(listAdapter.getItem(position).getLocation());
                 builder.setView(input);
                 builder.setTitle("Location");
                 builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -133,7 +132,7 @@ public class EditQueryActivity extends AppCompatActivity {
                         realm.executeTransaction(new Realm.Transaction() {
                             @Override
                             public void execute(Realm realm) {
-                                Storageitem item = adapterFilteringName.getItem(position);
+                                StorageItem item = listAdapter.getItem(position);
                                 item.setLocation(input.getText().toString());
                             }
                         });
@@ -156,7 +155,7 @@ public class EditQueryActivity extends AppCompatActivity {
                 realm.executeTransaction(new Realm.Transaction() {
                     @Override
                     public void execute(Realm realm) {
-                        Storageitem deleteItem = adapterFilteringName.getItem(position);
+                        StorageItem deleteItem = listAdapter.getItem(position);
                         Toast.makeText(getBaseContext(), "deleting " + deleteItem.toString() + " ...", Toast.LENGTH_SHORT).show();
 
                         RealmObject.deleteFromRealm(deleteItem);
@@ -181,7 +180,7 @@ public class EditQueryActivity extends AppCompatActivity {
                 final EditText input = new EditText(EditQueryActivity.this);
 
 
-                input.setText(adapterFilteringName.getItem(position).getDescription());
+                input.setText(listAdapter.getItem(position).getDescription());
                 builder.setView(input);
                 builder.setTitle("Description");
                 builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -190,7 +189,7 @@ public class EditQueryActivity extends AppCompatActivity {
                         realm.executeTransaction(new Realm.Transaction() {
                             @Override
                             public void execute(Realm realm) {
-                                Storageitem item = adapterFilteringName.getItem(position);
+                                StorageItem item = listAdapter.getItem(position);
                                 item.setDescription(input.getText().toString());
                             }
                         });
@@ -234,31 +233,20 @@ public class EditQueryActivity extends AppCompatActivity {
         }
     }
 
-    private void loadStorageitems() {
-        itemNames = new ArrayList<>();
-        itemLocations = new ArrayList<>();
-        RealmResults<Storageitem> allItems = realm.where(Storageitem.class).findAll();
-        allItemsDistinctName = allItems.distinct("description");
-        for (Storageitem item :
-                allItemsDistinctName) {
-            itemNames.add(item.getDescription());
-            itemLocations.add(item.getLocation());
-        }
-
-    }
-
     public void persistThisStorageitem(View view) {
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
-                Storageitem storageitem = realm.createObject(Storageitem.class);
-                storageitem.setDescription(itemNameTextbox.getText().toString());
-                storageitem.setLocation(itemLocationTextbox.getText().toString());
+                StorageItem storageItem = realm.createObject(StorageItem.class);
+                storageItem.setDescription(itemNameTextbox.getText().toString());
+                storageItem.setLocation(itemLocationTextbox.getText().toString());
             }
         });
+        listAdapter.notifyDataSetChanged();
+
     }
 
-    public void clearTextBoxes() {
+    public void clearTextBoxes(View view) {
         itemNameTextbox.setText("");
         itemLocationTextbox.setText("");
     }
@@ -278,14 +266,14 @@ public class EditQueryActivity extends AppCompatActivity {
         realm.executeTransaction(new Realm.Transaction() {
             @Override
             public void execute(Realm realm) {
-                RealmResults<Storageitem> items = realm.where(Storageitem.class)
+                RealmResults<StorageItem> items = realm.where(StorageItem.class)
                         .contains("description", itemNameTextbox.getText().toString())
                         .contains("location", itemLocationTextbox.getText().toString())
                         .findAll();
                 items.deleteAllFromRealm();
             }
         });
-        clearTextBoxes();
+        clearTextBoxes(null);
     }
 
     public void getSpeechInput(View view) {
@@ -296,6 +284,61 @@ public class EditQueryActivity extends AppCompatActivity {
             startActivityForResult(i, requestCode);
         } catch (Exception e) {
             Toast.makeText(this, "Error initializing speech to text engine.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private class NameAdapter {
+        public FilteringRealmBaseAdapter<StorageItem, String> invoke(Context context) {
+            return new FilteringRealmBaseAdapter<>(context, android.R.layout.simple_list_item_1, allItemsDistinctName, new IMyFilter<StorageItem, String>() {
+
+                @Override
+                public List<String> performRealmFiltering(@NonNull CharSequence constraint, RealmCollection<StorageItem> results) {
+                    results = results.where().contains("description", constraint.toString()).findAll();
+                    ArrayList<String> returnList = new ArrayList<>();
+                    for (StorageItem item : results) {
+                        returnList.add(item.getDescription());
+                    }
+                    return returnList;
+                }
+            }
+            );
+        }
+    }
+
+    private class SetupTextWatcher {
+        public void invoke() {
+            itemNameTextbox.addTextChangedListener(
+                    new TextWatcher() {
+                        @Override
+                        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                        }
+
+                        @Override
+                        public void onTextChanged(CharSequence s, int start, int before, int count) {
+                        }
+
+                        @Override
+                        public void afterTextChanged(Editable s) {
+                            listAdapter.getFilter().filter(itemNameTextbox.getText().toString() + ";" + itemLocationTextbox.getText().toString());
+                        }
+                    });
+            itemLocationTextbox.addTextChangedListener(
+                    new TextWatcher() {
+                        @Override
+                        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+                        }
+
+                        @Override
+                        public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+                        }
+
+                        @Override
+                        public void afterTextChanged(Editable s) {
+                            listAdapter.getFilter().filter(itemNameTextbox.getText().toString() + ";" + itemLocationTextbox.getText().toString());
+                        }
+                    });
         }
     }
 }

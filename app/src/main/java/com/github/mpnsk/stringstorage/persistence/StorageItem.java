@@ -5,14 +5,14 @@ import java.util.Date;
 import io.realm.RealmObject;
 import io.realm.annotations.Index;
 
-public class Storageitem extends RealmObject {
+public class StorageItem extends RealmObject {
 
     @Index
     private String description;
     private String location;
     private long timestamp;
 
-    public Storageitem() {
+    public StorageItem() {
         this.timestamp = new Date().getTime();
     }
 

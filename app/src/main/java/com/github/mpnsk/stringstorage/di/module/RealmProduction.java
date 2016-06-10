@@ -13,7 +13,7 @@ public class RealmProduction {
     @Provides
     @Singleton
     RealmConfiguration provideRealmConfiguration(Context context) {
-        return new RealmConfiguration.Builder(context).name("default.realm").build();
+        return new RealmConfiguration.Builder(context).name("default.realm").deleteRealmIfMigrationNeeded().build();
     }
 
 }

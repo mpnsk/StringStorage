@@ -2,72 +2,68 @@ package com.github.mpnsk.stringstorage.persistence.adapter.generic;
 
 import android.content.Context;
 import android.support.annotation.LayoutRes;
-import android.support.annotation.NonNull;
+import android.widget.ArrayAdapter;
+import android.widget.Filter;
+import android.widget.Filterable;
 
-import com.github.mpnsk.stringstorage.persistence.Storageitem;
-
-import java.util.ArrayList;
 import java.util.List;
 
 import io.realm.OrderedRealmCollection;
-import io.realm.RealmModel;
-import io.realm.RealmResults;
+import io.realm.RealmCollection;
+import io.realm.RealmObject;
 
-public class FilteringRealmBaseAdapter<T extends RealmModel> extends FilterableRealmBaseAdapter<T> {
-    private final Context context;
-    @LayoutRes
-    private final int layout;
-    private String filteringFor;
+public class FilteringRealmBaseAdapter<T extends RealmObject, U> extends ArrayAdapter<U> implements Filterable {
+    protected List<U> mResults;
+    private RealmCollection<T> mRealmCollection;
+    private IMyFilter<T, U> myFilter;
 
-    public FilteringRealmBaseAdapter(Context context, @LayoutRes int layout, OrderedRealmCollection data, String filteringFor) {
-        super(context, layout, data, filteringFor);
-        this.context = context;
-        this.layout = layout;
-        this.filteringFor = filteringFor.toLowerCase();
+    public FilteringRealmBaseAdapter(Context context, @LayoutRes int layout, OrderedRealmCollection<T> data, IMyFilter<T, U> myFilter) {
+        super(context, layout);
+        mRealmCollection = data;
+        this.myFilter = myFilter;
+
     }
 
-    protected List<String> performRealmFiltering(@NonNull CharSequence constraint, RealmResults<T> results) {
-        List<String> filteredList = new ArrayList<>();
+    @Override
+    public int getCount() {
+        return mResults == null ? 0 : mResults.size();
+    }
 
-        RealmResults list = results.where().contains(filteringFor, constraint.toString()).findAll();
-        for (Object t : list) {
-            if (filteringFor.equalsIgnoreCase("location")) {
-                filteredList.add(((Storageitem) t).getLocation());
-            } else {
-                filteredList.add(((Storageitem) t).getDescription());
+    @Override
+    public U getItem(int position) {
+        return mResults == null ? null : mResults.get(position);
+    }
 
+    @Override
+    public Filter getFilter() {
+
+        return new Filter() {
+
+            private boolean mHasResults = false;
+
+            @Override
+            protected FilterResults performFiltering(CharSequence constraint) {
+                // do nothing here because it's executed in another thread and Realm really
+                // doesn't like treating data from another thread.
+                final FilterResults results = new FilterResults();
+                results.count = mHasResults ? 1 : 0; // AutoCompleteTextView already hides dropdown here if count is 0, so correct it.
+                return results;
             }
-        }
-        return filteredList;
+
+            @Override
+            protected void publishResults(CharSequence constraint, FilterResults results) {
+                // back on the main thread, we can do the query and notify
+                if (constraint != null) {
+                    mResults = myFilter.performRealmFiltering(constraint, mRealmCollection);
+//                    mResults = performRealmFiltering(constraint, mRealmObjectList);
+                    mHasResults = mResults.size() > 0;
+                    notifyDataSetChanged();
+                }
+            }
+
+
+        };
     }
+
+//    protected List<String> performRealmFiltering(@NonNull CharSequence constraint, RealmResults<T> results);
 }
-
-
-//    @Override
-//    public View getView(int position, View convertView, ViewGroup parent) {
-//        View view;
-//        TextView text;
-//
-//        if (convertView == null) {
-//            LayoutInflater inflater = ((Activity) parent.getContext()).getLayoutInflater();
-//            view = inflater.inflate(layout, parent, false);
-//        } else {
-//            view = convertView;
-//        }
-//
-//        text = (TextView) view;
-//
-//        Storageitem item = getItem(position);
-//        if (filteringFor.equals("location")) {
-//            text.setText(item.getLocation());
-//        } else {
-//            text.setText(item.getDescription());
-//        }
-//
-//        return view;
-//
-//
-//    }
-
-
-
